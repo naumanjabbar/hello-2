@@ -13,21 +13,6 @@ export const getFiles = async (req, res) => {
   } catch (error) {}
 };
 
-// export const uploadFiles = async (req, res) => {
-//   try {
-//     const { file, fileName, folderId } = req.body;
-
-//     if (file === null || fileName === null || folderId === null)
-//       return res.status(500).json("value is null");
-
-//     const newFile = new File({ file, fileName, folderId });
-//     const fileData = await newFile.save();
-//     res.status(200).json(fileData);
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
-
 export const uploadFiles = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
@@ -37,14 +22,8 @@ export const uploadFiles = async (req, res) => {
   const { folderId, encrypt } = req.body;
 
   try {
-    // const iv = crypto.randomBytes(16);
-    // // Save filename and folderId to the database
 
-    // res
-    //   .status(200)
-    //   .json({ message: "File uploaded and filename saved to the database" });
-
-    if (encrypt) {
+    if (encrypt?.toLowerCase() === 'true') {
       const iv = crypto.randomBytes(16);
       const key = crypto.randomBytes(32);
 
@@ -53,14 +32,12 @@ export const uploadFiles = async (req, res) => {
       const output = fs.createWriteStream(`uploads/${originalname}.enc`);
       input.pipe(cipher).pipe(output);
 
-      // Save filename, folderId, and IV to the database
       const newFile = new File({
         fileName: `${originalname}.enc`,
         folderId,
         iv: iv.toString("hex"),
         key: key.toString("hex"),
       });
-      console.log("here 6");
 
       await newFile.save();
     } else {
@@ -93,17 +70,10 @@ export const editFile = async (req, res) => {
 };
 
 export const downloadFile = async (req, res) => {
-  // try {
-  // const { filename } = req.params;
-  //   const filePath = `uploads/${filename}`;
-  //   res.download(filePath);
-  // } catch (error) {
-  //   return res.status(500).json("File not found");
-  // }
 
   const { filename } = req.params;
   const { decrypt } = req.query;
-  
+
   try {
     if (decrypt?.toLowerCase() === 'true') {
       const encryptedFile = await File.findOne({ fileName: filename });
@@ -122,11 +92,7 @@ export const downloadFile = async (req, res) => {
         "Content-Disposition",
         `attachment; filename=${filename.replace(".enc", "")}`
       );
-      console.log({ decryptedFilePath });
-      // res.sendFile(decryptedFilePath, () => {
-      //   // Clean up: remove the decrypted file after it's sent
-      //   // fs.unlinkSync(decryptedFilePath);
-      // });
+
       res.download(decryptedFilePath);
     } else {
       const filePath = `uploads/${filename}`;
