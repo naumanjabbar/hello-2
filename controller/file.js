@@ -1,6 +1,7 @@
 import { File } from "../model/file.js";
 import crypto from "crypto";
 import fs from "fs";
+import { Folder } from "../model/folder.js";
 
 export const getFiles = async (req, res) => {
   try {
@@ -104,4 +105,31 @@ export const downloadFile = async (req, res) => {
   }
 };
 
-export const deleteFile = async (req, res) => {};
+export const deleteFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedFile = await File.findByIdAndDelete(id);
+
+    console.log({deletedFile})
+
+    try {
+      const folder = await Folder.findById(deletedFile.folderId);
+      const filePath = `uploads/${folder.folderName}/${deletedFile.fileName}`
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error removing file: ${err}`);
+        } else {
+          console.log(`File ${filePath} removed successfully`);
+        }
+      });
+    } catch (error) {
+      console.log("error", error)
+    }
+
+    if (!deletedFile) return res.status(500).json("File not found");
+
+    res.status(200).json(deletedFile);
+  } catch (error) {
+    console.log(error);
+  }
+};
